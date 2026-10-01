@@ -69,15 +69,39 @@ class Model(Estimator, ABC):
         self.fit(dataset)
         return self.predict(dataset)
 
+    @abstractmethod
     def _score(self, dataset):
         """
-        comentarios e explicação
+        Calculate the score of the model on the given dataset.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            The dataset used to calculate the model score.
+
+        Returns
+        -------
+        score: float
+            The score of the model.
         """
         return None
 
     def score(self, dataset):
         """
-        comentarios e explicação
+        Calculate the score of the fitted model.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            The dataset used to calculate the model score.
+
+        Returns
+        -------
+        score: float
+            The score of the model.
         """
-        return None
+        if not self.is_fitted:
+            raise ValueError('Model needs to be fitted before calling the score')
+        
+        return self._score(dataset)
         

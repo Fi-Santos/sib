@@ -3,8 +3,11 @@ from si.data.dataset import Dataset
 from scipy.stats import f_oneway
 import numpy as np
 
-def f_classification(dataset: Dataset):
 
+def f_classification(dataset: Dataset):
+    """
+    Calculates the F-statistic and p-value for each feature using one-way ANOVA.
+    """
     classes = dataset.get_classes()
 
     f_values = []
