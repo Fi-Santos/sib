@@ -1,59 +1,20 @@
-from typing import Callable, Union
-
 import numpy as np
-from si.base.model import Model
-from si.data.dataset import Dataset
 
-class RidgeRegression(Model):
+def mse(y_pred, y_true):
     """
-    Comentatarios e explicação
+    Calculates the mean squared error between the predicted and true values.
 
-    Parametros
-    ---------
-    
-    l2_penalty: ...
-        ....
-    alpha: ...
-        .... 
-    max_iter: ...
-        ....
-    pacience: ...
-        ....
-    scale: ...
-        .... 
+    Parameters
+    ----------
+    y_true : array-like
+        Real values of y.
+    y_pred : array-like
+        Predicted values of y.
 
-    Atributos
-    ---------
-    ...
-
+    Returns
+    -------
+    mse : float
+        Mean squared error between the predicted and true values.
     """
-    def __init__(self, l2_penalty, alpha, max_iter, pacience, scale):
-        return None
-    
-    def _fit(self, dataset: Dataset) -> 'RidgeRegression':
-        """
-            Comentatarios e explicação
-        """
-        return None
-    
-    def _predict(self, dataset: Dataset) -> 'RidgeRegression':
-        """
-            Comentatarios e explicação
-        """
-        return None
-    
-    def _score(self, dataset: Dataset) -> 'RidgeRegression':
-        """
-            Comentatarios e explicação
-        """
-        return None
-    
-    def _cost(self, dataset: Dataset) -> 'RidgeRegression':
-        """
-            Comentatarios e explicação
-        """
-        return None
-
-
-if __name__ == '__main__': # o construtor
-    None
+    squared_errors = (y_true - y_pred) ** 2
+    return np.mean(squared_errors)
