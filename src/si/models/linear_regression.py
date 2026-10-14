@@ -50,7 +50,7 @@ class RidgeRegression(Model):
         self.l2_penalty = l2_penalty
         self.alpha = alpha
         self.max_iter = max_iter
-        self.patience = patience #Ainda n esta a ser usado
+        self.patience = patience 
         self.scale = scale
 
         self.theta = None
@@ -83,6 +83,10 @@ class RidgeRegression(Model):
         self.theta = np.zeros(X.shape[1])
         self.theta_zero = 0
 
+        best_cost = float('inf')
+        index_patience = 0
+        self.cost_history = {}
+
         for iteration in range(self.max_iter):
             y_pred = self.theta_zero + X @ self.theta
 
@@ -98,6 +102,15 @@ class RidgeRegression(Model):
 
             cost = self.cost(dataset)
             self.cost_history[iteration] = cost
+
+            if cost < best_cost:
+                best_cost = cost
+                index_patience = 0
+            else:
+                index_patience += 1
+
+            if index_patience >= self.patience:
+                break
 
         return self
 
@@ -194,3 +207,4 @@ if __name__ == '__main__':
     print("Predictions:", model.predict(dataset))
     print("Score:", model.score(dataset))
     print("Cost:", model.cost(dataset))
+   
