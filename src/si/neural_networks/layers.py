@@ -81,6 +81,8 @@ class DenseLayer(Layer):
         self.weights = np.random.rand(self.input_shape()[0], self.n_units) - 0.5
         self.bias = np.zeros((1, self.n_units))
         #Initialize the optimizer for both weights and biases.
+        #self.w_opt = copy.deepcopy(optimizer) 
+        #self.b_opt = copy.deepcopy(optimizer)
         return self
 
     def parameters(self):
@@ -107,16 +109,21 @@ class DenseLayer(Layer):
         self.output = np.dot(input, self.weights) + self.bias
         return self.output
     
-    """
+    
     def backward_propagation(self):
+        #input_error = dE/dX (ANTES DE AUTALISAR OS ERROS)
+        #wiegths_error = dE/dW
+        #bias_erros = dE/dB
+        #autualisar os pesos e os bias com self.w_opt e self.b_opt
+        # devolver input_error  
         return None
-    """
+
 
     def output_shape(self):
         """Return the output shape for a single example."""
         return (self.n_units,)
 
-
+"""
 if __name__ == "__main__":
     layer = DenseLayer(4, (3,)).initialize()
     out = layer.forward_propagation(np.random.rand(10, 3))
@@ -124,3 +131,90 @@ if __name__ == "__main__":
     assert out.shape == (10, 4)
     assert layer.parameters() == 16
     assert layer.output_shape() == (4,)
+"""
+
+class ActivationLayer(Layer):
+    def __init__(self, n_units, input_shape):
+        super().__init__()
+        self.n_units = n_units
+        self.set_input_shape(input_shape)
+
+    @abstractmethod
+    def activation_function(self, input):
+        raise NotImplementedError
+
+    @abstractmethod
+    def derivative(self, input):
+        raise NotImplementedError 
+
+    def parameters(self):
+        return 0 #activation layers do not have learnable parameters
+
+    def forward_propagation(self, input, training=None):
+        self.input = input
+        self.output = np.dot(input, self.weights) + self.bias
+        return self.output
+    
+    def backward_propagation(self):
+        #input_error = dE/dX (ANTES DE AUTALISAR OS ERROS)
+        #wiegths_error = dE/dW
+        #bias_erros = dE/dB
+        #autualisar os pesos e os bias com self.w_opt e self.b_opt
+        # devolver input_error  
+        return None
+
+    def output_shape(self):
+        return self.input_shape #activation layers do not change the shape of the input
+
+
+class ReLUActivation(ActivationLayer):
+    def __init__(self):
+        super().__init__()
+    def activation_function(self):
+        return None #applies the ReLU function on the input (argument)
+    
+    def derivative(self):
+        return None #applies the ReLU derivative on the input (argument)
+
+
+class SigmoidActivation(ActivationLayer):
+    def __init__(self):
+        super().__init__()
+    def activation_function(self): 
+        return None #applies the sigmoid function on the input (argument)
+    
+    def derivative(self):
+        return None #applies the sigmoid derivative on the input (argument)
+
+
+
+class Dropout(Layer):
+    """
+    - mask - binomial mask that sets some inputs to 0 based on the probability;
+    - input - the input of the layer;
+    - output - the output of the layer;
+    """
+    def __init__(self, probability):
+        super().__init__(probability)
+        self.probability = probability
+
+    def forward_propagation(self, input, training=None):
+        #If we are in training mode:
+        self.input = input
+        size = len(self.input)
+        scaling_factor = (1 / (1 - self.probability)) 
+        self.mask = (1 - self.probability) @ size 
+        self.output = input * self.mask * scaling_factor
+        #return self.output
+        
+        #If we are in inference mode:
+        #return input #input is not changed during inference
+    
+    def backward_propagation(self, output_error):
+        return output_error * self.mask
+ 
+    def output_shape(self):
+        return self.input_shape #dropout does not change the shape of the data
+
+    def parameters(self):
+        return 0 #dropout layers do not have learnable parameters
