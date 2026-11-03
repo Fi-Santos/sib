@@ -1,24 +1,52 @@
+
 from abc import ABCMeta, abstractmethod
 import numpy as np
+import copy
 
 
 class Layer(metaclass=ABCMeta):
     """
-    Base class for all neural network layers.
+    Abstract base class for neural network layers.
 
-    Defines the abstract methods that specific layers must implement and
-    provides shared methods for handling input shapes and layer names.
+    Defines the common interface for all layers and provides methods
+    for handling input shapes and retrieving layer information.
     """
 
     @abstractmethod
     def forward_propagation(self, input, training):
-        """Compute the layer output for a given input."""
+        """
+        Compute the layer output during forward propagation.
+
+        Parameters
+        ----------
+        input : numpy.ndarray
+            Input data passed to the layer.
+        training : bool
+            Whether the layer is being used during training.
+
+        Returns
+        -------
+        numpy.ndarray
+            Output produced by the layer.
+        """
         raise NotImplementedError
 
-    # @abstractmethod
-    # def backward_propagation(self):
-    #     """Compute the gradient of the loss with respect to the layer input."""
-    #     raise NotImplementedError
+    @abstractmethod
+    def backward_propagation(self, output_error):
+        """
+        Compute the gradient of the loss with respect to the layer input.
+
+        Parameters
+        ----------
+        output_error : numpy.ndarray
+            Gradient of the loss with respect to the layer output.
+
+        Returns
+        -------
+        numpy.ndarray
+            Gradient of the loss with respect to the layer input.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def output_shape(self):
@@ -31,28 +59,40 @@ class Layer(metaclass=ABCMeta):
         raise NotImplementedError
 
     def set_input_shape(self, input_shape):
-        """Set the shape of the layer input."""
+        """
+        Set the expected input shape of the layer.
+
+        Parameters
+        ----------
+        input_shape : tuple
+            Shape of a single input example.
+        """
         self._input_shape = input_shape
 
     def input_shape(self):
-        """Return the shape of the layer input."""
+        """Return the shape of a single input example."""
         return self._input_shape
 
     def layer_name(self):
-        """Return the class name of the layer."""
+        """Return the name of the layer class."""
         return self.__class__.__name__
+
+
+
 
 
 class DenseLayer(Layer):
     """
     Fully connected neural network layer.
 
+    Each neuron is connected to every input feature.
+
     Parameters
     ----------
     n_units : int
         Number of neurons in the layer.
     input_shape : tuple
-        Shape of the input for a single example.
+        Shape of a single input example.
     """
 
     def __init__(self, n_units, input_shape):
@@ -63,9 +103,9 @@ class DenseLayer(Layer):
 
     def initialize(self, optimizer=None):
         """
-        Initialize the weights and biases of the layer.
+        Initialize the weights, biases, and optimizers.
 
-        Weights are randomly initialized between -0.5 and 0.5,
+        Weights are initialized randomly between -0.5 and 0.5,
         while biases are initialized to zero.
 
         Parameters
@@ -80,9 +120,11 @@ class DenseLayer(Layer):
         """
         self.weights = np.random.rand(self.input_shape()[0], self.n_units) - 0.5
         self.bias = np.zeros((1, self.n_units))
-        #Initialize the optimizer for both weights and biases.
-        #self.w_opt = copy.deepcopy(optimizer) 
-        #self.b_opt = copy.deepcopy(optimizer)
+
+        # Create independent optimizer instances for weights and biases.
+        self.w_opt = copy.deepcopy(optimizer)
+        self.b_opt = copy.deepcopy(optimizer)
+
         return self
 
     def parameters(self):
@@ -91,130 +133,141 @@ class DenseLayer(Layer):
 
     def forward_propagation(self, input, training=None):
         """
-        Compute the layer output using the input, weights, and biases.
+        Compute the layer output using a linear transformation.
 
         Parameters
         ----------
         input : numpy.ndarray
-            Input data for the layer.
+            Input data with shape (n_samples, n_features).
         training : bool, optional
             Indicates whether the layer is being used during training.
 
         Returns
         -------
         numpy.ndarray
-            Output of the layer.
+            Layer output with shape (n_samples, n_units).
         """
         self.input = input
         self.output = np.dot(input, self.weights) + self.bias
-        return self.output
-    
-    
-    def backward_propagation(self):
-        #input_error = dE/dX (ANTES DE AUTALISAR OS ERROS)
-        #wiegths_error = dE/dW
-        #bias_erros = dE/dB
-        #autualisar os pesos e os bias com self.w_opt e self.b_opt
-        # devolver input_error  
-        return None
 
+        return self.output
+
+    def backward_propagation(self, output_error):
+        """
+        Compute gradients and update the layer parameters.
+
+        Parameters
+        ----------
+        output_error : numpy.ndarray
+            Gradient of the loss with respect to the layer output.
+
+        Returns
+        -------
+        numpy.ndarray
+            Gradient of the loss with respect to the layer input.
+        """
+        # Calculate gradients using the current weights.
+        input_error = output_error @ self.weights.T
+        weights_error = self.input.T @ output_error
+        bias_error = np.sum(output_error, axis=0, keepdims=True)
+
+        # Update weights and biases using their respective optimizers.
+        self.weights = self.w_opt.update(self.weights, weights_error)
+        self.bias = self.b_opt.update(self.bias, bias_error)
+
+        return input_error
 
     def output_shape(self):
-        """Return the output shape for a single example."""
+        """Return the output shape for a single input example."""
         return (self.n_units,)
 
-"""
-if __name__ == "__main__":
-    layer = DenseLayer(4, (3,)).initialize()
-    out = layer.forward_propagation(np.random.rand(10, 3))
 
-    assert out.shape == (10, 4)
-    assert layer.parameters() == 16
-    assert layer.output_shape() == (4,)
-"""
-
-class ActivationLayer(Layer):
-    def __init__(self, n_units, input_shape):
-        super().__init__()
-        self.n_units = n_units
-        self.set_input_shape(input_shape)
-
-    @abstractmethod
-    def activation_function(self, input):
-        raise NotImplementedError
-
-    @abstractmethod
-    def derivative(self, input):
-        raise NotImplementedError 
-
-    def parameters(self):
-        return 0 #activation layers do not have learnable parameters
-
-    def forward_propagation(self, input, training=None):
-        self.input = input
-        self.output = np.dot(input, self.weights) + self.bias
-        return self.output
-    
-    def backward_propagation(self):
-        #input_error = dE/dX (ANTES DE AUTALISAR OS ERROS)
-        #wiegths_error = dE/dW
-        #bias_erros = dE/dB
-        #autualisar os pesos e os bias com self.w_opt e self.b_opt
-        # devolver input_error  
-        return None
-
-    def output_shape(self):
-        return self.input_shape #activation layers do not change the shape of the input
-
-
-class ReLUActivation(ActivationLayer):
-    def __init__(self):
-        super().__init__()
-    def activation_function(self):
-        return None #applies the ReLU function on the input (argument)
-    
-    def derivative(self):
-        return None #applies the ReLU derivative on the input (argument)
-
-
-class SigmoidActivation(ActivationLayer):
-    def __init__(self):
-        super().__init__()
-    def activation_function(self): 
-        return None #applies the sigmoid function on the input (argument)
-    
-    def derivative(self):
-        return None #applies the sigmoid derivative on the input (argument)
 
 
 
 class Dropout(Layer):
     """
-    - mask - binomial mask that sets some inputs to 0 based on the probability;
-    - input - the input of the layer;
-    - output - the output of the layer;
+    Dropout regularization layer.
+
+    Randomly disables a proportion of input units during training
+    to help prevent overfitting.
+
+    Parameters
+    ----------
+    probability : float
+        Probability of setting an input unit to zero.
+        Must be in the range [0, 1).
     """
+
     def __init__(self, probability):
-        super().__init__(probability)
+        """Initialize the dropout probability."""
+        super().__init__()
+
+        if not 0 <= probability < 1:
+            raise ValueError("probability must be between 0 and 1")
+
         self.probability = probability
 
     def forward_propagation(self, input, training=None):
-        #If we are in training mode:
-        self.input = input
-        size = len(self.input)
-        scaling_factor = (1 / (1 - self.probability)) 
-        self.mask = (1 - self.probability) @ size 
-        self.output = input * self.mask * scaling_factor
-        #return self.output
-        
-        #If we are in inference mode:
-        #return input #input is not changed during inference
-    
+        """
+        Apply dropout during training or pass the input unchanged during inference.
+
+        Inverted dropout scaling is used to maintain the expected
+        activation values during training.
+
+        Parameters
+        ----------
+        input : numpy.ndarray
+            Input data to the layer.
+        training : bool, optional
+            If True, randomly mask input units. Otherwise, return
+            the input unchanged.
+
+        Returns
+        -------
+        numpy.ndarray
+            Output after applying dropout, or the original input
+            during inference.
+        """
+        if training:
+            self.input = input
+
+            scaling_factor = 1 / (1 - self.probability)
+            self.mask = np.random.binomial(
+                1, 1 - self.probability, input.shape
+            )
+
+            self.output = input * self.mask * scaling_factor
+            return self.output
+
+        # During inference, dropout is disabled.
+        return input
+
     def backward_propagation(self, output_error):
-        return output_error * self.mask
- 
+        """
+        Propagate the error through the dropout mask.
+
+        Uses the same mask generated during forward propagation.
+
+        Parameters
+        ----------
+        output_error : numpy.ndarray
+            Gradient of the loss with respect to the layer output.
+
+        Returns
+        -------
+        numpy.ndarray
+            Gradient of the loss with respect to the layer input.
+        """
+        scaling_factor = 1 / (1 - self.probability)
+        input_error = output_error * self.mask * scaling_factor
+
+        return input_error
+
     def output_shape(self):
-        return self.input_shape #dropout does not change the shape of the data
+        """Return the input shape, since dropout does not change dimensions."""
+        return self.input_shape()
 
     def parameters(self):
-        return 0 #dropout layers do not have learnable parameters
+        """Return zero, since dropout has no trainable parameters."""
+        return 0
