@@ -95,7 +95,7 @@ class DenseLayer(Layer):
         Shape of a single input example.
     """
 
-    def __init__(self, n_units, input_shape):
+    def __init__(self, n_units, input_shape = None):
         """Initialize the layer configuration."""
         super().__init__()
         self.n_units = n_units
